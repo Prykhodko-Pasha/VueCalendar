@@ -31,7 +31,7 @@ import MonthGrid from './MonthGrid.vue';
 import WeekGrid from './WeekGrid.vue';
 import DayGrid from './DayGrid.vue';
 import { useCalendarStore } from '../store';
-import { computed } from 'vue';
+import { computed, toRefs } from 'vue';
 
 function formatLocalDate(date) {
   return date.getFullYear() + '-' +
@@ -54,13 +54,14 @@ export default {
   },
   emits: ['create-event', 'edit-event'],
   setup(props, { emit }) {
+    const { viewMode, currentDate } = toRefs(props);
     const calendarStore = useCalendarStore();
     const today = getTodayLocal();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    console.log(props.viewMode);
+    console.log(viewMode.value);
     // Month view logic
-    const monthDate = computed(() => new Date(props.currentDate));
+    const monthDate = computed(() => new Date(currentDate.value));
     const year = computed(() => monthDate.value.getFullYear());
     const month = computed(() => monthDate.value.getMonth());
     const firstDay = computed(() => new Date(year.value, month.value, 1));
@@ -89,7 +90,7 @@ export default {
 
     // Week view logic
     const weekCells = computed(() => {
-      const date = new Date(props.currentDate);
+      const date = new Date(currentDate.value);
       const dayOfWeek = date.getDay() || 7;
       const start = new Date(date);
       start.setDate(date.getDate() - dayOfWeek + 1);
@@ -112,7 +113,7 @@ export default {
 
     // Day view logic
     const dayViewCell = computed(() => {
-      const date = new Date(props.currentDate);
+      const date = new Date(currentDate.value);
       const dateStr = formatLocalDate(date);
       return {
         date: dateStr,
@@ -143,10 +144,10 @@ export default {
     });
 
     const periodLabel = computed(() => {
-      const date = new Date(props.currentDate);
-      if (props.viewMode === 'month') {
+      const date = new Date(currentDate.value);
+      if (viewMode.value === 'month') {
         return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-      } else if (props.viewMode === 'week') {
+      } else if (viewMode.value === 'week') {
         const start = new Date(date);
         start.setDate(date.getDate() - (date.getDay() || 7) + 1);
         const end = new Date(start);
@@ -171,7 +172,8 @@ export default {
       dayViewCellWithNames,
       onDateClick,
       onEventClick,
-      viewMode: props.viewMode
+      viewMode,
+      currentDate
     };
   }
 };

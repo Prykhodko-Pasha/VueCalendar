@@ -27,7 +27,18 @@
     <div v-for="hour in 24" :key="hour" class="calendar-row">
       <div class="calendar-header-cell">{{ (hour-1).toString().padStart(2, '0') }}:00</div>
       <div v-for="cell in weekCells" :key="cell.date + '-' + hour" class="calendar-cell hour-cell">
-        <!-- Optionally, show events for this hour here -->
+        <div class="cell-events">
+          <div
+            v-for="event in cell.events.filter(e => e.time && e.time.startsWith((hour-1).toString().padStart(2, '0')) )"
+            :key="event.id"
+            class="event-block"
+            :style="{ background: event.color }"
+            @click.stop="onEventClick(event)"
+          >
+            <span class="event-time">{{ event.time }}</span>
+            <span class="event-name">{{ event.name }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
