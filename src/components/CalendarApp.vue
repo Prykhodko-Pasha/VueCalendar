@@ -34,6 +34,7 @@
       :event="selectedEvent"
       @close="closeModal"
       @save="handleSaveEvent"
+      @delete="handleDeleteEvent"
     />
   </div>
 </template>
@@ -86,7 +87,10 @@ export default {
         date: date || '',
         time: '',
         notes: '',
-        color: '#3B82F6'
+        color: '#3B82F6',
+        id: null,
+        createdAt: null,
+        updatedAt: null
       };
       this.modalVisible = true;
     },
@@ -108,6 +112,9 @@ export default {
         eventData.updatedAt = new Date();
         this.calendarStore.addEvent(eventData);
       }
+    },
+    handleDeleteEvent(eventId) {
+      this.calendarStore.deleteEvent(eventId);
     },
     setViewMode(mode) {
       console.log(mode);

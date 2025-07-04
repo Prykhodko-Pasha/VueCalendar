@@ -25,7 +25,7 @@
       <input type="color" v-model="form.color" />
       <span v-if="errors.color" class="error">{{ errors.color }}</span>
     </div>
-    <div class="form-actions">
+    <div class="form-actions" v-if="!form.id">
       <button type="button" @click="$emit('cancel')">Cancel</button>
       <button type="submit">Save</button>
     </div>
@@ -46,6 +46,9 @@ export default {
         time: this.event?.time || '',
         notes: this.event?.notes || '',
         color: this.event?.color || '#3B82F6',
+        id: this.event?.id || null,
+        createdAt: this.event?.createdAt || null,
+        updatedAt: this.event?.updatedAt || null
       },
       errors: {},
       today: new Date().toISOString().slice(0, 10)
