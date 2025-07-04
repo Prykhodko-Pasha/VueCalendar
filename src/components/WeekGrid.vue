@@ -12,7 +12,7 @@
       <div v-for="cell in weekCells" :key="cell.date + '-allday'" class="calendar-cell all-day">
         <div class="cell-events">
           <div
-            v-for="event in cell.events"
+            v-for="event in sortedEvents(cell.events)"
             :key="event.id"
             class="event-block"
             :style="{ background: event.color }"
@@ -26,13 +26,13 @@
     </div>
     <div v-for="hour in 24" :key="hour" class="calendar-row">
       <div class="calendar-header-cell">{{ (hour-1).toString().padStart(2, '0') }}:00</div>
-      <div v-for="cell in weekCells" :key="cell.date + '-' + hour" class="calendar-cell hour-cell">
+      <div v-for="cell in weekCells" :key="cell.date + '-' + hour" class="calendar-cell hour-cell event-cell-relative">
         <div class="cell-events">
           <div
             v-for="event in cell.events.filter(e => e.time && e.time.startsWith((hour-1).toString().padStart(2, '0')) )"
             :key="event.id"
             class="event-block"
-            :style="{ background: event.color }"
+            :style="eventBlockDynamicStyle(event)"
             @click.stop="onEventClick(event)"
           >
             <span class="event-time">{{ event.time }}</span>
@@ -45,11 +45,35 @@
 </template>
 
 <script>
+import { sortedEvents } from '../utils/sortEvents';
 export default {
   name: 'WeekGrid',
   props: {
     weekCells: Array,
     onEventClick: Function
+  },
+  methods: {
+    sortedEvents,
+    eventBlockDynamicStyle(event) {
+      if (!event.time) return {};
+      const minute = parseInt(event.time.split(':')[1], 10);
+      const height = ((60 - minute) / 60) * 100;
+      return {
+        position: 'absolute',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        height: `calc(${height}% )`,
+        background: event.color,
+        borderRadius: '4px',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '2px 4px',
+        fontSize: '0.9em',
+        gap: '4px',
+      };
+    }
   }
 };
 </script>
@@ -118,7 +142,7 @@ export default {
   margin-bottom: 2px;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  alignItems: center;
   gap: 4px;
 }
 .event-time {
@@ -126,5 +150,8 @@ export default {
 }
 .not-current {
   opacity: 0.4;
+}
+.event-cell-relative {
+  position: relative;
 }
 </style> 

@@ -7,15 +7,32 @@
         <div>{{ dayViewCell.dateLabel }}</div>
       </div>
     </div>
+    <div class="calendar-row">
+      <div class="calendar-hour-label">All day</div>
+      <div class="calendar-cell all-day">
+        <div class="cell-events">
+          <div
+            v-for="event in sortedEvents"
+            :key="event.id"
+            class="event-block"
+            :style="{ background: event.color }"
+            @click.stop="onEventClick(event)"
+          >
+            <span class="event-time">{{ event.time }}</span>
+            <span class="event-name">{{ event.name }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div v-for="hour in 24" :key="hour" class="calendar-row">
       <div class="calendar-hour-label">{{ (hour-1).toString().padStart(2, '0') }}:00</div>
-      <div class="calendar-cell hour-cell">
+      <div class="calendar-cell hour-cell event-cell-relative">
         <div class="cell-events">
           <div
             v-for="event in dayViewCell.events.filter(e => e.time && e.time.startsWith((hour-1).toString().padStart(2, '0')) )"
             :key="event.id"
             class="event-block"
-            :style="{ background: event.color }"
+            :style="eventBlockDynamicStyle(event)"
             @click.stop="onEventClick(event)"
           >
             <span class="event-time">{{ event.time }}</span>
@@ -28,11 +45,39 @@
 </template>
 
 <script>
+import { sortedEvents } from '../utils/sortEvents';
 export default {
   name: 'DayGrid',
   props: {
     dayViewCell: Object,
     onEventClick: Function
+  },
+  computed: {
+    sortedEvents() {
+      return sortedEvents(this.dayViewCell.events);
+    }
+  },
+  methods: {
+    eventBlockDynamicStyle(event) {
+      if (!event.time) return {};
+      const minute = parseInt(event.time.split(':')[1], 10);
+      const height = ((60 - minute) / 60) * 100;
+      return {
+        position: 'absolute',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        height: `calc(${height}% )`,
+        background: event.color,
+        borderRadius: '4px',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '2px 4px',
+        fontSize: '0.9em',
+        gap: '4px',
+      };
+    }
   }
 };
 </script>
@@ -108,5 +153,8 @@ export default {
 }
 .not-current {
   opacity: 0.4;
+}
+.event-cell-relative {
+  position: relative;
 }
 </style> 

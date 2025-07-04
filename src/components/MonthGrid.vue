@@ -10,7 +10,7 @@
       <div class="cell-date">{{ cell.day }}</div>
       <div class="cell-events">
         <div
-          v-for="event in cell.events"
+          v-for="event in sortedEvents(cell.events)"
           :key="event.id"
           class="event-block"
           :style="{ background: event.color }"
@@ -25,12 +25,16 @@
 </template>
 
 <script>
+import { sortedEvents } from '../utils/sortEvents';
 export default {
   name: 'MonthGrid',
   props: {
     calendarCells: Array,
     onDateClick: Function,
     onEventClick: Function
+  },
+  methods: {
+    sortedEvents
   }
 };
 </script>
