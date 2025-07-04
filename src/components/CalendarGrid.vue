@@ -1,82 +1,53 @@
 <template>
   <div class="calendar-grid">
-    <div class="calendar-header">
-      <div v-for="day in headerDays" :key="day" class="calendar-cell header">{{ day }}</div>
+    <div class="calendar-period-label">{{ periodLabel }}</div>
+    <div v-if="viewMode === 'month'">
+      <MonthGrid
+        :key="'month-' + currentDate"
+        :calendarCells="calendarCells"
+        :onDateClick="onDateClick"
+        :onEventClick="onEventClick"
+      />
     </div>
-    <div class="calendar-body">
-      <template v-if="viewMode === 'month'">
-        <div
-          v-for="cell in calendarCells"
-          :key="cell.date"
-          class="calendar-cell"
-          :class="{ today: cell.isToday, 'not-current': !cell.isCurrentMonth }"
-          @click="onDateClick(cell.date)"
-        >
-          <div class="cell-date">{{ cell.day }}</div>
-          <div class="cell-events">
-            <div
-              v-for="event in cell.events"
-              :key="event.id"
-              class="event-block"
-              :style="{ background: event.color }"
-              @click.stop="onEventClick(event)"
-            >
-              <span class="event-time">{{ event.time }}</span>
-              <span class="event-name">{{ event.name }}</span>
-            </div>
-          </div>
-        </div>
-      </template>
-      <template v-else-if="viewMode === 'week'">
-        <div
-          v-for="cell in weekCells"
-          :key="cell.date"
-          class="calendar-cell"
-          :class="{ today: cell.isToday }"
-          @click="onDateClick(cell.date)"
-        >
-          <div class="cell-date">{{ cell.day }}</div>
-          <div class="cell-events">
-            <div
-              v-for="event in cell.events"
-              :key="event.id"
-              class="event-block"
-              :style="{ background: event.color }"
-              @click.stop="onEventClick(event)"
-            >
-              <span class="event-time">{{ event.time }}</span>
-              <span class="event-name">{{ event.name }}</span>
-            </div>
-          </div>
-        </div>
-      </template>
-      <template v-else>
-        <div class="calendar-cell today day-view" @click="onDateClick(currentDate)">
-          <div class="cell-date">{{ dayViewCell.day }}</div>
-          <div class="cell-events">
-            <div
-              v-for="event in dayViewCell.events"
-              :key="event.id"
-              class="event-block"
-              :style="{ background: event.color }"
-              @click.stop="onEventClick(event)"
-            >
-              <span class="event-time">{{ event.time }}</span>
-              <span class="event-name">{{ event.name }}</span>
-            </div>
-          </div>
-        </div>
-      </template>
+    <div v-else-if="viewMode === 'week'">
+      <WeekGrid
+        :key="'week-' + currentDate"
+        :weekCells="weekCellsWithNames"
+        :onEventClick="onEventClick"
+      />
+    </div>
+    <div v-else>
+      <DayGrid
+        :key="'day-' + currentDate"
+        :dayViewCell="dayViewCellWithNames"
+        :onEventClick="onEventClick"
+      />
     </div>
   </div>
 </template>
 
 <script>
+import MonthGrid from './MonthGrid.vue';
+import WeekGrid from './WeekGrid.vue';
+import DayGrid from './DayGrid.vue';
 import { useCalendarStore } from '../store';
 import { computed } from 'vue';
 
+function formatLocalDate(date) {
+  return date.getFullYear() + '-' +
+    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+    String(date.getDate()).padStart(2, '0');
+}
+
+function getTodayLocal() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return formatLocalDate(now);
+}
+
 export default {
   name: 'CalendarGrid',
+  components: { MonthGrid, WeekGrid, DayGrid },
   props: {
     viewMode: { type: String, default: 'month' },
     currentDate: { type: String, required: true }
@@ -84,9 +55,10 @@ export default {
   emits: ['create-event', 'edit-event'],
   setup(props, { emit }) {
     const calendarStore = useCalendarStore();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayLocal();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+    console.log(props.viewMode);
     // Month view logic
     const monthDate = computed(() => new Date(props.currentDate));
     const year = computed(() => monthDate.value.getFullYear());
@@ -97,10 +69,12 @@ export default {
 
     const calendarCells = computed(() => {
       const cells = [];
-      let dayOffset = 1 - (startDayOfWeek.value === 7 ? 0 : startDayOfWeek.value);
+      // Get the weekday index for the first day of the month (Monday=0, ..., Sunday=6)
+      let firstDayWeekIndex = firstDay.value.getDay(); // 0 (Sun) - 6 (Sat)
+      let offset = -((firstDayWeekIndex + 6) % 7);
       for (let i = 0; i < 42; i++) {
-        const cellDate = new Date(year.value, month.value, dayOffset + i + 1);
-        const dateStr = cellDate.toISOString().slice(0, 10);
+        const cellDate = new Date(year.value, month.value, offset + i + 1);
+        const dateStr = formatLocalDate(cellDate);
         const isCurrentMonth = cellDate.getMonth() === month.value;
         cells.push({
           date: dateStr,
@@ -122,10 +96,14 @@ export default {
       return Array.from({ length: 7 }, (_, i) => {
         const cellDate = new Date(start);
         cellDate.setDate(start.getDate() + i);
-        const dateStr = cellDate.toISOString().slice(0, 10);
+        const dateStr = formatLocalDate(cellDate);
+        const dayName = weekDays[cellDate.getDay() === 0 ? 6 : cellDate.getDay() - 1];
+        const dateLabel = cellDate.toLocaleDateString();
         return {
           date: dateStr,
           day: cellDate.getDate(),
+          dayName,
+          dateLabel,
           isToday: dateStr === today,
           events: calendarStore.events.filter(e => e.date === dateStr)
         };
@@ -135,7 +113,7 @@ export default {
     // Day view logic
     const dayViewCell = computed(() => {
       const date = new Date(props.currentDate);
-      const dateStr = date.toISOString().slice(0, 10);
+      const dateStr = formatLocalDate(date);
       return {
         date: dateStr,
         day: date.getDate(),
@@ -144,7 +122,40 @@ export default {
       };
     });
 
-    const headerDays = computed(() => weekDays);
+    // Add day name and date label for week view
+    const weekCellsWithNames = computed(() => {
+      return weekCells.value.map(cell => ({
+        ...cell,
+        dayName: weekDays[new Date(cell.date).getDay() === 0 ? 6 : new Date(cell.date).getDay() - 1],
+        dateLabel: new Date(cell.date).toLocaleDateString()
+      }));
+    });
+    console.log(weekCellsWithNames.value);
+    // Add day name and date label for day view
+    const dayViewCellWithNames = computed(() => {
+      const cell = dayViewCell.value;
+      const d = new Date(cell.date);
+      return {
+        ...cell,
+        dayName: weekDays[d.getDay() === 0 ? 6 : d.getDay() - 1],
+        dateLabel: d.toLocaleDateString()
+      };
+    });
+
+    const periodLabel = computed(() => {
+      const date = new Date(props.currentDate);
+      if (props.viewMode === 'month') {
+        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+      } else if (props.viewMode === 'week') {
+        const start = new Date(date);
+        start.setDate(date.getDate() - (date.getDay() || 7) + 1);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+      } else {
+        return date.toLocaleDateString();
+      }
+    });
 
     function onDateClick(date) {
       emit('create-event', date);
@@ -154,15 +165,12 @@ export default {
     }
 
     return {
-      weekDays,
-      headerDays,
+      periodLabel,
       calendarCells,
-      weekCells,
-      dayViewCell,
+      weekCellsWithNames,
+      dayViewCellWithNames,
       onDateClick,
       onEventClick,
-      today,
-      currentDate: props.currentDate,
       viewMode: props.viewMode
     };
   }
@@ -175,59 +183,12 @@ export default {
   flex-direction: column;
   gap: 0.5rem;
 }
-.calendar-header, .calendar-body {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-}
-.calendar-cell {
-  min-height: 80px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  padding: 4px;
-  position: relative;
-  cursor: pointer;
-}
-.calendar-cell.header {
-  background: #fff;
-  font-weight: bold;
-  text-align: center;
-  border-bottom: 2px solid #3B82F6;
-  cursor: default;
-}
-.cell-date {
-  font-size: 1.1em;
-  font-weight: bold;
+.calendar-period-label {
+  font-size: 1.3em;
+  font-weight: 700;
   color: #22292f;
-}
-.today {
-  border: 2px solid #3B82F6;
-}
-.cell-events {
-  margin-top: 2px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.event-block {
-  background: #3B82F6;
-  color: #fff;
-  border-radius: 4px;
-  padding: 2px 4px;
-  font-size: 0.9em;
-  margin-bottom: 2px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.event-time {
-  font-weight: bold;
-}
-.not-current {
-  opacity: 0.4;
-}
-.day-view {
-  grid-column: span 7;
-  min-height: 200px;
+  margin-bottom: 0.5em;
+  text-align: center;
+  letter-spacing: 0.01em;
 }
 </style> 

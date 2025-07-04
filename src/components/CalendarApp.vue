@@ -49,7 +49,7 @@ function formatPeriod(viewMode, currentDate) {
     return date.toLocaleString('default', { month: 'long', year: 'numeric' });
   } else if (viewMode === 'week') {
     const start = new Date(date);
-    start.setDate(date.getDate() - date.getDay() + 1);
+    start.setDate(date.getDate() - (date.getDay() || 7) + 1);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
     return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
@@ -110,8 +110,8 @@ export default {
       }
     },
     setViewMode(mode) {
-      this.calendarStore.viewMode = mode;
-      this.calendarStore.setCurrentDate(new Date().toISOString().slice(0, 10));
+      console.log(mode);
+      this.calendarStore.setViewMode(mode);
     },
     goToPrev() {
       const date = new Date(this.calendarStore.currentDate);
