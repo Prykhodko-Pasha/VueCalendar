@@ -1,213 +1,536 @@
 <template>
   <div class="calendar-app">
-    <header>
-      <h1>Vue.js Event Calendar</h1>
-      <div class="calendar-controls">
-        <div class="nav-btn-group">
-          <button class="nav-btn" @click="goToPrev">&#8592;</button>
-          <button class="nav-btn" @click="goToNext">&#8594;</button>
+    <div class="calendar-toolbar">
+      <div class="toolbar-left">
+        <span class="calendar-title">Calendar View</span>
+        <div class="nav-buttons-group">
+          <button class="nav-btn today" @click="goToToday">Today</button>
+          <button class="nav-btn" @click="goToPrev">Back</button>
+          <button class="nav-btn" @click="goToNext">Next</button>
         </div>
-        <span class="period-label">{{ formattedPeriod }}</span>
-        <div class="view-mode-group">
+      </div>
+      <div class="toolbar-center">
+        <span class="month-title">{{ currentTitle }}</span>
+      </div>
+      <div class="toolbar-right">
+        <div class="view-switcher-group">
           <button
-            v-for="mode in ['month', 'week', 'day']"
-            :key="mode"
-            :class="['view-mode-btn', { active: calendarStore.viewMode === mode }]"
-            @click="setViewMode(mode)"
-            type="button"
+            v-for="view in availableViews"
+            :key="view.value"
+            :class="['view-btn', { active: currentView === view.value }]"
+            @click="changeView(view.value)"
           >
-            {{ mode.charAt(0).toUpperCase() + mode.slice(1) }}
+            {{ view.label }}
           </button>
         </div>
       </div>
-    </header>
-    <main>
-      <CalendarGrid
-        :viewMode="calendarStore.viewMode"
-        :currentDate="calendarStore.currentDate"
-        @create-event="openCreateModal"
-        @edit-event="openEditModal"
-      />
-    </main>
+    </div>
+
+    <FullCalendar
+      ref="calendarRef"
+      :options="calendarOptions"
+      class="calendar-container"
+    />
+
+    <!-- Event Modal -->
     <EventModal
-      :visible="modalVisible"
+      v-if="showEventModal"
       :event="selectedEvent"
-      @close="closeModal"
-      @save="handleSaveEvent"
-      @delete="handleDeleteEvent"
+      :is-edit="isEditMode"
+      @close="closeEventModal"
+      @save="saveEvent"
+      @delete="deleteEvent"
     />
   </div>
 </template>
 
 <script>
-import CalendarGrid from './CalendarGrid.vue';
-import EventModal from './EventModal.vue';
-import { useCalendarStore } from '../store';
-
-function formatPeriod(viewMode, currentDate) {
-  const date = new Date(currentDate);
-  if (viewMode === 'month') {
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-  } else if (viewMode === 'week') {
-    const start = new Date(date);
-    start.setDate(date.getDate() - (date.getDay() || 7) + 1);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
-  } else {
-    return date.toLocaleDateString();
-  }
-}
+import { ref, reactive, onMounted, computed } from 'vue'
+import FullCalendar from '@fullcalendar/vue3'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import listPlugin from '@fullcalendar/list'
+import EventModal from './EventModal.vue'
 
 export default {
   name: 'CalendarApp',
   components: {
-    CalendarGrid,
+    FullCalendar,
     EventModal
   },
-  data() {
-    return {
-      modalVisible: false,
-      selectedEvent: null
-    };
-  },
   setup() {
-    const calendarStore = useCalendarStore();
-    return { calendarStore };
-  },
-  computed: {
-    formattedPeriod() {
-      return formatPeriod(this.calendarStore.viewMode, this.calendarStore.currentDate);
+    const calendarRef = ref(null)
+    const events = ref([])
+    const currentView = ref('dayGridMonth')
+    const showEventModal = ref(false)
+    const selectedEvent = ref(null)
+    const isEditMode = ref(false)
+    const currentTitle = ref('')
+
+    const availableViews = [
+      { label: 'Month', value: 'dayGridMonth' },
+      { label: 'Week', value: 'timeGridWeek' },
+      { label: 'Day', value: 'timeGridDay' }
+    ]
+
+    // Load events from localStorage
+    const loadEvents = () => {
+      const savedEvents = localStorage.getItem('calendar-events')
+      if (savedEvents) {
+        events.value = JSON.parse(savedEvents).map(event => ({
+          ...event,
+          start: new Date(event.start),
+          end: event.end ? new Date(event.end) : null
+        }))
+      }
     }
-  },
-  methods: {
-    openCreateModal(date) {
-      this.selectedEvent = {
-        name: '',
-        date: date || '',
-        time: '',
-        notes: '',
-        color: '#3B82F6',
+
+    // Save events to localStorage
+    const saveEvents = () => {
+      localStorage.setItem('calendar-events', JSON.stringify(events.value))
+    }
+
+    // Load view mode from localStorage
+    const loadViewMode = () => {
+      const savedView = localStorage.getItem('calendar-view-mode')
+      if (savedView && availableViews.find(v => v.value === savedView)) {
+        currentView.value = savedView
+      }
+    }
+
+    // Save view mode to localStorage
+    const saveViewMode = () => {
+      localStorage.setItem('calendar-view-mode', currentView.value)
+    }
+
+    const calendarOptions = reactive({
+      plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
+      initialView: currentView.value,
+      headerToolbar: false, // We'll use our own toolbar
+      events: events,
+      editable: true,
+      droppable: true,
+      selectable: true,
+      selectMirror: true,
+      dayMaxEvents: true,
+      weekends: true,
+      height: 'auto',
+      eventClick: handleEventClick,
+      dateClick: handleDateClick,
+      eventDrop: handleEventDrop,
+      eventResize: handleEventResize,
+      select: handleDateSelect,
+      datesSet: updateTitle,
+      eventClassNames: () => ['custom-event']
+    })
+
+    function updateTitle(arg) {
+      if (calendarRef.value) {
+        currentTitle.value = calendarRef.value.getApi().view.title
+      }
+    }
+
+    function goToToday() {
+      if (calendarRef.value) {
+        calendarRef.value.getApi().today()
+        updateTitle()
+      }
+    }
+    function goToPrev() {
+      if (calendarRef.value) {
+        calendarRef.value.getApi().prev()
+        updateTitle()
+      }
+    }
+    function goToNext() {
+      if (calendarRef.value) {
+        calendarRef.value.getApi().next()
+        updateTitle()
+      }
+    }
+
+    function handleEventClick(info) {
+      selectedEvent.value = {
+        id: info.event.id,
+        title: info.event.title,
+        start: info.event.start,
+        end: info.event.end,
+        notes: info.event.extendedProps.notes || '',
+        color: info.event.backgroundColor || '#3B82F6'
+      }
+      isEditMode.value = true
+      showEventModal.value = true
+    }
+
+    function handleDateClick(info) {
+      selectedEvent.value = {
         id: null,
-        createdAt: null,
-        updatedAt: null
-      };
-      this.modalVisible = true;
-    },
-    openEditModal(event) {
-      this.selectedEvent = { ...event };
-      this.modalVisible = true;
-    },
-    closeModal() {
-      this.modalVisible = false;
-      this.selectedEvent = null;
-    },
-    handleSaveEvent(eventData) {
-      if (eventData.id) {
-        eventData.updatedAt = new Date();
-        this.calendarStore.updateEvent(eventData);
-      } else {
-        eventData.id = Math.random().toString(36).substr(2, 9);
-        eventData.createdAt = new Date();
-        eventData.updatedAt = new Date();
-        this.calendarStore.addEvent(eventData);
+        title: '',
+        start: info.date,
+        end: null,
+        notes: '',
+        color: '#3B82F6'
       }
-    },
-    handleDeleteEvent(eventId) {
-      this.calendarStore.deleteEvent(eventId);
-    },
-    setViewMode(mode) {
-      console.log(mode);
-      this.calendarStore.setViewMode(mode);
-    },
-    goToPrev() {
-      const date = new Date(this.calendarStore.currentDate);
-      if (this.calendarStore.viewMode === 'month') {
-        date.setMonth(date.getMonth() - 1);
-      } else if (this.calendarStore.viewMode === 'week') {
-        date.setDate(date.getDate() - 7);
-      } else {
-        date.setDate(date.getDate() - 1);
+      isEditMode.value = false
+      showEventModal.value = true
+    }
+
+    function handleEventDrop(info) {
+      const event = events.value.find(e => e.id === info.event.id)
+      if (event) {
+        event.start = info.event.start
+        event.end = info.event.end
+        saveEvents()
       }
-      this.calendarStore.setCurrentDate(date.toISOString().slice(0, 10));
-    },
-    goToNext() {
-      const date = new Date(this.calendarStore.currentDate);
-      if (this.calendarStore.viewMode === 'month') {
-        date.setMonth(date.getMonth() + 1);
-      } else if (this.calendarStore.viewMode === 'week') {
-        date.setDate(date.getDate() + 7);
-      } else {
-        date.setDate(date.getDate() + 1);
+    }
+
+    function handleEventResize(info) {
+      const event = events.value.find(e => e.id === info.event.id)
+      if (event) {
+        event.start = info.event.start
+        event.end = info.event.end
+        saveEvents()
       }
-      this.calendarStore.setCurrentDate(date.toISOString().slice(0, 10));
+    }
+
+    function handleDateSelect(info) {
+      selectedEvent.value = {
+        id: null,
+        title: '',
+        start: info.start,
+        end: info.end,
+        notes: '',
+        color: '#3B82F6'
+      }
+      isEditMode.value = false
+      showEventModal.value = true
+    }
+
+    function changeView(view) {
+      currentView.value = view
+      if (calendarRef.value) {
+        calendarRef.value.getApi().changeView(view)
+        updateTitle()
+      }
+      saveViewMode()
+    }
+
+    function closeEventModal() {
+      showEventModal.value = false
+      selectedEvent.value = null
+      isEditMode.value = false
+    }
+
+    function saveEvent(eventData) {
+      if (isEditMode.value) {
+        // Update existing event
+        const index = events.value.findIndex(e => e.id === eventData.id)
+        if (index !== -1) {
+          events.value[index] = {
+            ...events.value[index],
+            ...eventData,
+            updatedAt: new Date()
+          }
+        }
+      } else {
+        // Create new event
+        const newEvent = {
+          ...eventData,
+          id: Date.now().toString(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+        events.value.push(newEvent)
+      }
+      
+      saveEvents()
+      closeEventModal()
+      
+      // Refresh calendar
+      if (calendarRef.value) {
+        calendarRef.value.getApi().refetchEvents()
+      }
+    }
+
+    function deleteEvent(eventId) {
+      events.value = events.value.filter(e => e.id !== eventId)
+      saveEvents()
+      closeEventModal()
+      
+      // Refresh calendar
+      if (calendarRef.value) {
+        calendarRef.value.getApi().refetchEvents()
+      }
+    }
+
+    onMounted(() => {
+      loadEvents()
+      loadViewMode()
+      calendarOptions.initialView = currentView.value
+      setTimeout(updateTitle, 0)
+    })
+
+    return {
+      calendarRef,
+      events,
+      currentView,
+      availableViews,
+      showEventModal,
+      selectedEvent,
+      isEditMode,
+      calendarOptions,
+      changeView,
+      closeEventModal,
+      saveEvent,
+      deleteEvent,
+      goToToday,
+      goToPrev,
+      goToNext,
+      currentTitle
     }
   }
-};
+}
 </script>
 
 <style scoped>
 .calendar-app {
-  min-width: 1024px;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  padding: 32px 0 0 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-header {
+
+.calendar-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 2rem;
+  margin-bottom: 16px;
+  padding: 0 24px;
 }
-h1 {
-  color: #22292f;
-}
-.calendar-controls {
+.toolbar-left {
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }
-.nav-btn-group {
-  display: flex;
-  gap: 0.2rem;
-}
-.period-label {
-  font-weight: bold;
-  font-size: 1.1em;
-  margin: 0 1rem;
-}
-.view-mode-group {
-  display: flex;
-  gap: 0.5rem;
-}
-.view-mode-btn {
-  background: #fff;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 0.3rem 0.9rem;
+.calendar-title {
+  font-size: 18px;
+  color: #374151;
   font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: 4px;
 }
-.view-mode-btn.active {
-  color: #3B82F6;
-  border-color: #3B82F6;
+.nav-buttons-group {
+  display: flex;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  box-shadow: none;
+  background: #fff;
+  margin-bottom: 0;
 }
 .nav-btn {
   background: #fff;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 0.3rem 0.7rem;
-  font-size: 1.1em;
+  border: none;
+  color: #444;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 14px;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: color 0.15s;
+  outline: none;
+  border-right: 1px solid #e5e7eb;
+  border-radius: 0;
+  height: 28px;
+  min-width: 40px;
 }
-.nav-btn:hover {
-  border-color: #3B82F6;
+.nav-btn:last-child {
+  border-right: none;
+}
+.nav-btn.today {
+  color: #3B82F6;
+  font-weight: 600;
+  background: #fff;
+}
+.nav-btn:not(.today) {
+  color: #444;
+  background: #fff;
+}
+.nav-btn:focus {
+  z-index: 1;
+  position: relative;
+  box-shadow: 0 0 0 2px #3B82F633;
+}
+.nav-btn:hover:not(.today) {
+  color: #2563eb;
+}
+.toolbar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.month-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.02em;
+}
+.toolbar-right {
+  display: flex;
+  align-items: center;
+}
+.view-switcher-group {
+  display: flex;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  box-shadow: none;
+  background: #fff;
+}
+.view-btn {
+  background: #fff;
+  border: none;
+  color: #444;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: color 0.15s;
+  outline: none;
+  border-right: 1px solid #e5e7eb;
+  border-radius: 0;
+  height: 28px;
+  min-width: 40px;
+}
+.view-btn:last-child {
+  border-right: none;
+}
+.view-btn.active {
+  color: #3B82F6;
+  background: #fff;
+  font-weight: 600;
+}
+.view-btn:not(.active) {
+  color: #444;
+  background: #fff;
+}
+.view-btn:focus {
+  z-index: 1;
+  position: relative;
+  box-shadow: 0 0 0 2px #3B82F633;
+}
+.view-btn:hover:not(.active) {
+  color: #2563eb;
+}
+
+.calendar-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
+  padding: 8px 16px 24px 16px;
+}
+
+:deep(.fc) {
+  background: #fff;
+  border-radius: 12px;
+  font-family: inherit;
+}
+:deep(.fc-scrollgrid),
+:deep(.fc-scrollgrid-section),
+:deep(.fc-scrollgrid-sync-table) {
+  background: #fff;
+}
+:deep(.fc-col-header-cell) {
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f3f4f6;
+  border: none;
+  padding: 8px 0;
+}
+:deep(.fc-daygrid-day) {
+  border: 1px solid #e5e7eb !important;
+  background: #fff;
+}
+:deep(.fc-daygrid-day-number) {
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 500;
+  margin: 4px 0 0 4px;
+}
+:deep(.fc-day-other) {
+  background: #f9fafb;
+  color: #d1d5db;
+}
+:deep(.fc-daygrid-day-frame) {
+  min-height: 80px;
+}
+:deep(.fc-daygrid-event) {
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+:deep(.custom-event) {
+  background: #3b82f6 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  border: none !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  padding: 2px 8px !important;
+  width: 100%;
+  transition: background 0.15s;
+}
+:deep(.custom-event:hover) {
+  background: #2563eb !important;
+}
+:deep(.fc-list-event) {
+  background: #3b82f6 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  border: none !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  padding: 2px 8px !important;
+  margin-bottom: 6px;
+}
+:deep(.fc-list-event:hover) {
+  background: #2563eb !important;
+}
+:deep(.fc-list-day-cushion) {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 13px !important;
+}
+:deep(.fc-list-table) {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .calendar-app {
+    padding: 0;
+  }
+  .calendar-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 8px;
+  }
+  .toolbar-center {
+    margin: 8px 0;
+  }
+  .calendar-container {
+    padding: 0 2px 12px 2px;
+  }
 }
 </style> 
