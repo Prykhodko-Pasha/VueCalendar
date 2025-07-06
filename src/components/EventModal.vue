@@ -69,8 +69,10 @@
           <span v-if="errors.color" class="error-message">{{ errors.color }}</span>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn-cancel" @click="closeModal">Cancel</button>
-          <button type="submit" class="btn-save">Save</button>
+          <button v-if="isEdit" type="button" class="btn-discard" @click="handleDelete">Discard</button>
+          <button v-else type="button" class="btn-cancel" @click="closeModal">Cancel</button>
+          <button v-if="isEdit" type="submit" class="btn-edit">Edit</button>
+          <button v-else type="submit" class="btn-save">Save</button>
         </div>
       </form>
     </div>
@@ -115,11 +117,11 @@ export default {
       '#3B82F6', // Blue
       '#EF4444', // Red
       '#10B981', // Green
-      '#F59E0B', // Yellow
+      '#F59E0B', // Orange
       '#8B5CF6', // Purple
-      '#F97316', // Orange
-      '#06B6D4', // Cyan
-      '#EC4899'  // Pink
+      '#EC4899', // Pink
+      '#06B6D4', // Teal
+      '#A16207', // Brown
     ]
 
     const today = computed(() => {
@@ -229,9 +231,7 @@ export default {
     }
 
     function handleDelete() {
-      if (confirm('Are you sure you want to delete this event?')) {
-        emit('delete', formData.id)
-      }
+      emit('delete', formData.id)
     }
 
     function closeModal() {
@@ -473,6 +473,32 @@ export default {
   transition: color 0.15s;
 }
 .btn-save:hover {
+  color: #3B82F6;
+}
+.btn-discard {
+  background: none;
+  border: none;
+  color: #EF4444;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.btn-discard:hover {
+  color: #b91c1c;
+}
+.btn-edit {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.btn-edit:hover {
   color: #3B82F6;
 }
 .error-message {

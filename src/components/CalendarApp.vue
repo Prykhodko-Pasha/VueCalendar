@@ -100,6 +100,9 @@ export default {
       localStorage.setItem('calendar-view-mode', currentView.value)
     }
 
+    // Call loadViewMode before creating calendarOptions
+    loadViewMode();
+
     const calendarOptions = reactive({
       plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
       initialView: currentView.value,
@@ -269,7 +272,6 @@ export default {
 
     onMounted(() => {
       loadEvents()
-      loadViewMode()
       calendarOptions.initialView = currentView.value
       setTimeout(updateTitle, 0)
     })
