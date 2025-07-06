@@ -33,14 +33,16 @@
     />
 
     <!-- Event Modal -->
-    <EventModal
-      v-if="showEventModal"
-      :event="selectedEvent"
-      :is-edit="isEditMode"
-      @close="closeEventModal"
-      @save="saveEvent"
-      @delete="deleteEvent"
-    />
+    <div class="modal-container" v-if="showEventModal" @click="closeEventModal">
+      <EventModal
+        :event="selectedEvent"
+        :is-edit="isEditMode"
+        :position="modalPosition"
+        @close="closeEventModal"
+        @save="saveEvent"
+        @delete="deleteEvent"
+      />
+    </div>
   </div>
 </template>
 
@@ -67,6 +69,7 @@ export default {
     const selectedEvent = ref(null)
     const isEditMode = ref(false)
     const currentTitle = ref('')
+    const modalPosition = ref({ top: 0, left: 0, width: 0 })
 
     const availableViews = [
       { label: 'Month', value: 'dayGridMonth' },
@@ -121,6 +124,10 @@ export default {
       eventDrop: handleEventDrop,
       eventResize: handleEventResize,
       select: handleDateSelect,
+      selectAllow: function(selectInfo) {
+        // Only allow selecting future time slots
+        return selectInfo.start > new Date()
+      },
       datesSet: updateTitle,
       eventClassNames: () => ['custom-event'],
       eventContent: function(arg) {
@@ -157,6 +164,19 @@ export default {
     }
 
     function handleEventClick(info) {
+      // Capture the event element position and scroll at click moment
+      const eventEl = info.el
+      const rect = eventEl.getBoundingClientRect()
+      const calendarApp = document.querySelector('.calendar-app')
+      const calendarRect = calendarApp.getBoundingClientRect()
+      const scrollY = window.scrollY || window.pageYOffset
+      modalPosition.value = {
+        top: rect.bottom - calendarRect.top + 8,
+        left: rect.left - calendarRect.left + (rect.width / 2) - 160, // Center the popover (320px width / 2)
+        width: rect.width,
+        scrollY: scrollY
+      }
+      
       selectedEvent.value = {
         id: info.event.id,
         title: info.event.title,
@@ -170,6 +190,19 @@ export default {
     }
 
     function handleDateClick(info) {
+      // Capture the date cell position and scroll at click moment
+      const dateEl = info.dayEl
+      const rect = dateEl.getBoundingClientRect()
+      const calendarApp = document.querySelector('.calendar-app')
+      const calendarRect = calendarApp.getBoundingClientRect()
+      const scrollY = window.scrollY || window.pageYOffset
+      modalPosition.value = {
+        top: rect.bottom - calendarRect.top + 8,
+        left: rect.left - calendarRect.left + (rect.width / 2) - 160, // Center the popover (320px width / 2)
+        width: rect.width,
+        scrollY: scrollY
+      }
+      
       selectedEvent.value = {
         id: null,
         title: '',
@@ -201,6 +234,31 @@ export default {
     }
 
     function handleDateSelect(info) {
+      // Capture the selection element position for time slot clicks
+      const selectionEl = info.view.el.querySelector('.fc-highlight')
+      let rect
+      let calendarApp
+      let calendarRect
+      
+      if (selectionEl) {
+        rect = selectionEl.getBoundingClientRect()
+        calendarApp = document.querySelector('.calendar-app')
+        calendarRect = calendarApp.getBoundingClientRect()
+      } else {
+        // Fallback: use the view element
+        rect = info.view.el.getBoundingClientRect()
+        calendarApp = document.querySelector('.calendar-app')
+        calendarRect = calendarApp.getBoundingClientRect()
+      }
+      
+      const scrollY = window.scrollY || window.pageYOffset
+      modalPosition.value = {
+        top: rect.bottom - calendarRect.top + 8,
+        left: rect.left - calendarRect.left + (rect.width / 2) - 160, // Center the popover (320px width / 2)
+        width: rect.width,
+        scrollY: scrollY
+      }
+      
       selectedEvent.value = {
         id: null,
         title: '',
@@ -284,6 +342,7 @@ export default {
       showEventModal,
       selectedEvent,
       isEditMode,
+      modalPosition,
       calendarOptions,
       changeView,
       closeEventModal,
@@ -302,8 +361,19 @@ export default {
 .calendar-app {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 0 0 0;
+  padding: 32px 0 520px 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+}
+
+.modal-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1000;
 }
 
 .calendar-toolbar {
@@ -565,6 +635,25 @@ export default {
 
 :deep(.fc-timegrid-now-indicator-container) {
   overflow: visible !important;
+}
+
+/* Custom selection styling for time slots */
+:deep(.fc-highlight) {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border: 2px solid #3B82F6 !important;
+  border-radius: 6px;
+}
+
+:deep(.fc-highlight-skeleton) {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+:deep(.fc-timegrid-slot) {
+  cursor: pointer;
+}
+
+:deep(.fc-timegrid-slot:hover) {
+  background-color: rgba(59, 130, 246, 0.05);
 }
 
 /* Responsive */

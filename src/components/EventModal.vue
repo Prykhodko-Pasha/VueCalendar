@@ -1,6 +1,11 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
+  <div 
+    class="popover-content" 
+    @click.stop
+    :style="popoverStyle"
+    ref="popoverRef"
+  >
+      <div class="popover-arrow"></div>
       <button class="close-button" @click="closeModal">×</button>
       <form @submit.prevent="handleSubmit" class="event-form">
         <input
@@ -76,11 +81,10 @@
         </div>
       </form>
     </div>
-  </div>
 </template>
 
 <script>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, nextTick } from 'vue'
 
 export default {
   name: 'EventModal',
@@ -92,6 +96,10 @@ export default {
     isEdit: {
       type: Boolean,
       default: false
+    },
+    position: {
+      type: Object,
+      default: () => ({ top: 0, left: 0, width: 0 })
     }
   },
   emits: ['close', 'save', 'delete'],
@@ -131,6 +139,72 @@ export default {
 
     const dateInput = ref(null)
     const timeInput = ref(null)
+    const popoverRef = ref(null)
+
+    // Computed style for popover positioning
+    const popoverStyle = computed(() => {
+      let { top, left, width } = props.position
+      
+      // Default positioning if no position provided
+      if (!top && !left) {
+        top = 100
+        left = 100
+      }
+      
+      return {
+        position: 'absolute',
+        top: `${top}px`,
+        left: `${left}px`,
+        minWidth: '320px',
+        zIndex: 1000
+      }
+    })
+
+    // Adjust position to prevent overflow
+    const adjustPosition = () => {
+      if (!popoverRef.value) return
+      
+      nextTick(() => {
+        const popover = popoverRef.value
+        const rect = popover.getBoundingClientRect()
+        const viewportWidth = window.innerWidth
+        const calendarApp = document.querySelector('.calendar-app')
+        const viewportHeight = calendarApp ? (calendarApp.offsetHeight + props.position.scrollY) : window.innerHeight
+        
+        let { top, left } = props.position
+        let adjusted = false
+        
+        // Check right overflow
+        if (rect.right > viewportWidth - 20) {
+          left = Math.max(20, viewportWidth - rect.width - 20)
+          adjusted = true
+        }
+        
+        // Check bottom overflow
+        if (rect.bottom > viewportHeight - 20) {
+          // Position above the element instead
+          top = props.position.top - rect.height - 16
+          adjusted = true
+        }
+        
+        // Check left overflow
+        if (rect.left < 20) {
+          left = 20
+          adjusted = true
+        }
+        
+        // Check top overflow
+        if (rect.top < 20) {
+          top = 20
+          adjusted = true
+        }
+        
+        if (adjusted) {
+          popover.style.top = `${top}px`
+          popover.style.left = `${left}px`
+        }
+      })
+    }
 
     function focusDateInput() {
       dateInput.value && dateInput.value.focus()
@@ -165,6 +239,11 @@ export default {
           formData.time = ''
         }
       }
+    }, { immediate: true })
+
+    // Adjust position when modal opens
+    watch(() => props.position, () => {
+      adjustPosition()
     }, { immediate: true })
 
     function validateForm() {
@@ -249,7 +328,9 @@ export default {
       dateInput,
       timeInput,
       focusDateInput,
-      focusTimeInput
+      focusTimeInput,
+      popoverRef,
+      popoverStyle
     }
   }
 }
@@ -291,30 +372,46 @@ export default {
   z-index: 2;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.modal-content {
+
+.popover-content {
   background: #fff;
-  border-radius: 18px;
-  border: 1.5px solid #d1d5db;
-  box-shadow: 0 8px 32px rgba(60,60,90,0.10);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
   width: 320px;
   padding: 28px 24px 18px 24px;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  animation: popoverFadeIn 0.2s ease-out;
+  pointer-events: auto;
 }
+
+.popover-arrow {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: -2px -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .close-button {
   position: absolute;
   top: 12px;
