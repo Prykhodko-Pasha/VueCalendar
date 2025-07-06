@@ -112,6 +112,7 @@ export default {
       dayMaxEvents: true,
       weekends: true,
       height: 'auto',
+      nowIndicator: true,
       eventClick: handleEventClick,
       dateClick: handleDateClick,
       eventDrop: handleEventDrop,
@@ -485,15 +486,18 @@ export default {
   font-size: 13px !important;
   font-weight: 500 !important;
   box-shadow: none !important;
-  padding: 2px 8px !important;
   width: 100%;
   transition: background 0.15s;
 }
 :deep(.custom-event-inner) {
   display: block;
+  height: 100%;
 }
 :deep(.custom-event:hover) {
-  background: #2563eb !important;
+  background: transparent !important;
+}
+:deep(.fc-timegrid-event .fc-event-main) {
+    padding: 0px;
 }
 :deep(.fc-list-event) {
   background: #3b82f6 !important;
@@ -519,6 +523,46 @@ export default {
 :deep(.fc-list-table) {
   border-radius: 8px !important;
   overflow: hidden !important;
+}
+
+:deep(.fc-timegrid-now-indicator-line) {
+  border-top: 2px solid #3b82f6 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 0;
+  z-index: 100 !important;
+  position: absolute;
+}
+/* :deep(.fc-timegrid-now-indicator-line)::before {
+  content: '';
+  display: block;
+  position: absolute;
+  left: -5px;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border-radius: 50%;
+  z-index: 12 !important;
+} */
+
+:deep(.fc-timegrid-now-indicator-arrow) {
+  display: block !important;
+  opacity: 1 !important;
+  background: #3b82f6 !important;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  left: unset !important;
+  right: -5px !important;
+  position: absolute;
+  box-shadow: none;
+  pointer-events: auto;
+}
+
+:deep(.fc-timegrid-now-indicator-container) {
+  overflow: visible !important;
 }
 
 /* Responsive */
