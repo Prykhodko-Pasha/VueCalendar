@@ -120,7 +120,14 @@ export default {
       height: 'auto',
       nowIndicator: true,
       eventClick: handleEventClick,
-      dateClick: handleDateClick,
+      dateClick: function(info) {
+        // Handle both day clicks and time slot clicks
+        if (info.view.type.includes('timeGrid')) {
+          // For time grid views, use the select event instead
+          return false // Prevent default dateClick behavior
+        }
+        handleDateClick(info)
+      },
       eventDrop: handleEventDrop,
       eventResize: handleEventResize,
       select: handleDateSelect,
@@ -190,12 +197,26 @@ export default {
     }
 
     function handleDateClick(info) {
-      // Capture the date cell position and scroll at click moment
-      const dateEl = info.dayEl
-      const rect = dateEl.getBoundingClientRect()
-      const calendarApp = document.querySelector('.calendar-app')
-      const calendarRect = calendarApp.getBoundingClientRect()
+      // Capture the clicked element position
+      let rect
+      let calendarApp
+      let calendarRect
+      
+      if (info.dayEl) {
+        // Month view - clicked on a day cell
+        rect = info.dayEl.getBoundingClientRect()
+      } else if (info.jsEvent && info.jsEvent.target) {
+        // Time grid view - clicked on a time slot
+        rect = info.jsEvent.target.getBoundingClientRect()
+      } else {
+        // Fallback
+        rect = info.view.el.getBoundingClientRect()
+      }
+      
+      calendarApp = document.querySelector('.calendar-app')
+      calendarRect = calendarApp.getBoundingClientRect()
       const scrollY = window.scrollY || window.pageYOffset
+      
       modalPosition.value = {
         top: rect.bottom - calendarRect.top + 8,
         left: rect.left - calendarRect.left + (rect.width / 2) - 160, // Center the popover (320px width / 2)
@@ -234,22 +255,32 @@ export default {
     }
 
     function handleDateSelect(info) {
-      // Capture the selection element position for time slot clicks
-      const selectionEl = info.view.el.querySelector('.fc-highlight')
+      // Use mouse coordinates to position the popover
       let rect
       let calendarApp
       let calendarRect
       
-      if (selectionEl) {
-        rect = selectionEl.getBoundingClientRect()
-        calendarApp = document.querySelector('.calendar-app')
-        calendarRect = calendarApp.getBoundingClientRect()
+      // Get the mouse coordinates from the selection event
+      if (info.jsEvent) {
+        const mouseX = info.jsEvent.clientX
+        const mouseY = info.jsEvent.clientY
+        
+        // Create a virtual rectangle at the mouse position
+        rect = {
+          top: mouseY,
+          bottom: mouseY + 60, // 60px height for time slot
+          left: mouseX - 100, // 200px width centered on mouse
+          right: mouseX + 100,
+          width: 200,
+          height: 60
+        }
       } else {
         // Fallback: use the view element
         rect = info.view.el.getBoundingClientRect()
-        calendarApp = document.querySelector('.calendar-app')
-        calendarRect = calendarApp.getBoundingClientRect()
       }
+      
+      calendarApp = document.querySelector('.calendar-app')
+      calendarRect = calendarApp.getBoundingClientRect()
       
       const scrollY = window.scrollY || window.pageYOffset
       modalPosition.value = {
@@ -605,18 +636,6 @@ export default {
   z-index: 100 !important;
   position: absolute;
 }
-/* :deep(.fc-timegrid-now-indicator-line)::before {
-  content: '';
-  display: block;
-  position: absolute;
-  left: -5px;
-  top: -6px;
-  width: 10px;
-  height: 10px;
-  background: #3b82f6;
-  border-radius: 50%;
-  z-index: 12 !important;
-} */
 
 :deep(.fc-timegrid-now-indicator-arrow) {
   display: block !important;
