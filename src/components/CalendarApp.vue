@@ -78,11 +78,7 @@ export default {
     const loadEvents = () => {
       const savedEvents = localStorage.getItem('calendar-events')
       if (savedEvents) {
-        events.value = JSON.parse(savedEvents).map(event => ({
-          ...event,
-          start: new Date(event.start),
-          end: event.end ? new Date(event.end) : null
-        }))
+        events.value = JSON.parse(savedEvents)
       }
     }
 
@@ -122,7 +118,13 @@ export default {
       eventResize: handleEventResize,
       select: handleDateSelect,
       datesSet: updateTitle,
-      eventClassNames: () => ['custom-event']
+      eventClassNames: () => ['custom-event'],
+      eventContent: function(arg) {
+        const bg = arg.event.extendedProps.color || arg.event.backgroundColor || '#3b82f6';
+        return {
+          html: `<div class='custom-event-inner' style='background:${bg};color:#fff;border-radius:6px;padding:2px 8px;width:100%;font-size:13px;font-weight:500;'>${arg.event.title}</div>`
+        }
+      }
     })
 
     function updateTitle(arg) {
@@ -476,7 +478,7 @@ export default {
   margin-bottom: 2px;
 }
 :deep(.custom-event) {
-  background: #3b82f6 !important;
+  /* background: #3b82f6 !important; */
   color: #fff !important;
   border-radius: 6px !important;
   border: none !important;
@@ -486,6 +488,9 @@ export default {
   padding: 2px 8px !important;
   width: 100%;
   transition: background 0.15s;
+}
+:deep(.custom-event-inner) {
+  display: block;
 }
 :deep(.custom-event:hover) {
   background: #2563eb !important;

@@ -146,9 +146,18 @@ export default {
         formData.notes = newEvent.notes || ''
         formData.color = newEvent.color || '#3B82F6'
         if (newEvent.start) {
-          const startDate = new Date(newEvent.start)
-          formData.date = startDate.toISOString().split('T')[0]
-          formData.time = startDate.toTimeString().slice(0, 5)
+          let date = '', time = '';
+          if (typeof newEvent.start === 'string') {
+            [date, time] = newEvent.start.split('T');
+            time = time ? time.slice(0, 5) : '';
+          } else if (newEvent.start instanceof Date) {
+            date = newEvent.start.getFullYear().toString().padStart(4, '0') + '-' +
+                   (newEvent.start.getMonth() + 1).toString().padStart(2, '0') + '-' +
+                   newEvent.start.getDate().toString().padStart(2, '0');
+            time = newEvent.start.toTimeString().slice(0, 5);
+          }
+          formData.date = date;
+          formData.time = time;
         } else {
           formData.date = ''
           formData.time = ''
@@ -210,10 +219,10 @@ export default {
       const eventData = {
         id: formData.id,
         title: formData.title.trim(),
-        start: new Date(formData.date + 'T' + formData.time),
+        start: formData.date + 'T' + formData.time,
         notes: formData.notes.trim(),
+        color: formData.color,
         backgroundColor: formData.color,
-        borderColor: formData.color,
         textColor: '#FFFFFF'
       }
       emit('save', eventData)
