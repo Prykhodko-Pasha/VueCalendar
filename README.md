@@ -1,209 +1,141 @@
-# Vue Calendar with FullCalendar
+# Vue Calendar App
 
-A modern event calendar application built with Vue.js 3 and FullCalendar library, featuring drag & drop functionality, multiple view modes, and comprehensive event management.
+A modern, interactive calendar application built with Vue 3 and FullCalendar. Features event creation, editing, drag & drop, and multiple view modes.
 
 ## Features
 
-### ✅ Core Functionality
-- **Event Creation**: Click on any date to create a new event
-- **Event Editing**: Click on existing events to edit them
-- **Event Deletion**: Delete events with confirmation
-- **Drag & Drop**: Move events between dates and times
-- **Multiple Views**: Month, Week, and Day view modes
-- **Local Storage**: All data persists in browser storage
+- 📅 **Multiple Views**: Month, Week, and Day views
+- ✨ **Event Management**: Create, edit, and delete events
+- 🎨 **Color Coding**: Customize event colors
+- 📝 **Rich Notes**: Add detailed notes to events
+- 🖱️ **Drag & Drop**: Move events between dates and times
+- 💾 **Local Storage**: Events persist between sessions
+- 📱 **Responsive Design**: Works on desktop devices
+- 🎯 **Popover Interface**: Modern popover-style event forms
 
-### ✅ Event Management
-- **Event Name**: Required field (max 30 characters)
-- **Event Date**: Date picker with calendar icon
-- **Event Time**: Time picker with clock icon
-- **Notes**: Required field (max 3000 characters)
-- **Color Selection**: 8 predefined colors + custom color picker
-- **Validation**: Prevents past dates/times and ensures required fields
+## Live Demo
 
-### ✅ User Experience
-- **Modern UI**: Clean, responsive design
-- **Smooth Animations**: Modal transitions and hover effects
-- **Error Handling**: Clear validation messages
-- **Responsive Design**: Works on desktop and tablet
-- **Keyboard Navigation**: Full accessibility support
+Visit the live application: [Vue Calendar App](https://yourusername.github.io/VueCalendar/)
 
-## Installation
+## Technologies Used
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd VueCalendar
-   ```
+- **Vue 3** - Progressive JavaScript framework
+- **FullCalendar** - Full-featured calendar library
+- **Vite** - Fast build tool and dev server
+- **LocalStorage** - Client-side data persistence
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## Getting Started
 
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
+### Prerequisites
 
-4. **Build for production**
-   ```bash
-   npm run build
-   ```
+- Node.js (version 16 or higher)
+- npm or yarn
 
-## Dependencies
+### Installation
 
-### Core Dependencies
-- **Vue.js 3**: Progressive JavaScript framework
-- **FullCalendar**: Feature-rich calendar library
-  - `@fullcalendar/vue3`: Vue 3 integration
-  - `@fullcalendar/core`: Core functionality
-  - `@fullcalendar/daygrid`: Month view
-  - `@fullcalendar/timegrid`: Week/Day views
-  - `@fullcalendar/interaction`: Drag & drop
-  - `@fullcalendar/list`: List view (available)
-
-### Development Dependencies
-- **Vite**: Fast build tool
-- **Pinia**: State management
-- **Vue Router**: Client-side routing
-
-## Project Structure
-
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/VueCalendar.git
+cd VueCalendar
 ```
-src/
-├── components/
-│   ├── CalendarApp.vue      # Main calendar component
-│   └── EventModal.vue       # Event creation/editing modal
-├── App.vue                  # Root component
-├── main.js                  # Application entry point
-├── style.css               # Global styles
-└── utils/
-    └── sortEvents.js       # Event sorting utilities
+
+2. Install dependencies:
+```bash
+npm install
 ```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+4. Open your browser and navigate to `http://localhost:5173`
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist` directory.
 
 ## Usage
 
 ### Creating Events
-1. Click on any date in the calendar
-2. Fill in the event details:
-   - **Event Name** (required, max 30 chars)
-   - **Event Date** (required, no past dates)
-   - **Event Time** (required, no past times for today)
-   - **Notes** (required, max 3000 chars)
-   - **Color** (required, choose from palette or custom)
-3. Click "Create Event" to save
+- **Month View**: Click on any date cell
+- **Week/Day View**: Click and drag on time slots
+- Fill in the event details and click "Save"
 
 ### Editing Events
-1. Click on any existing event
-2. Modify the event details
-3. Click "Save Changes" to update
-4. Click "Delete" to remove the event
+- Click on any existing event
+- Modify the details and click "Edit"
 
-### Drag & Drop
-- **Move between dates**: Drag events to different dates
-- **Change time**: Drag events to different times (in week/day view)
-- **Resize duration**: Drag event edges to change duration
+### Deleting Events
+- Click on an event to open the edit form
+- Click "Discard" to delete the event
 
-### View Modes
-- **Month View**: Overview of entire month
-- **Week View**: Detailed weekly schedule with time slots
-- **Day View**: Hour-by-hour daily view
+### Navigation
+- Use "Today", "Back", and "Next" buttons to navigate
+- Switch between Month, Week, and Day views using the view switcher
 
-## Data Storage
+## Deployment
 
-All events are stored in the browser's LocalStorage with the following structure:
+This project is configured for automatic deployment to GitHub Pages.
 
-```javascript
-{
-  id: String,           // Unique identifier
-  title: String,        // Event name
-  start: Date,          // Start date/time
-  end: Date,           // End date/time (optional)
-  notes: String,       // Event notes
-  backgroundColor: String, // Event color
-  borderColor: String,    // Border color
-  textColor: String,      // Text color
-  createdAt: Date,     // Creation timestamp
-  updatedAt: Date      // Last update timestamp
-}
+### Manual Deployment
+
+1. Build the project:
+```bash
+npm run build
 ```
 
-## Customization
+2. The built files are in the `dist` directory
 
-### Colors
-The application includes 8 predefined colors:
-- Blue (#3B82F6) - Default
-- Red (#EF4444)
-- Green (#10B981)
-- Yellow (#F59E0B)
-- Purple (#8B5CF6)
-- Orange (#F97316)
-- Cyan (#06B6D4)
-- Pink (#EC4899)
+3. Deploy the contents of `dist` to your web server
 
-### Styling
-Global styles are in `src/style.css`. FullCalendar-specific styles use `!important` to override default themes.
+### GitHub Pages Deployment
 
-## Browser Support
+The project includes a GitHub Actions workflow that automatically deploys to GitHub Pages when you push to the main branch.
 
-- Chrome 88+
-- Firefox 85+
-- Safari 14+
-- Edge 88+
+1. Ensure your repository is named `VueCalendar`
+2. Push your code to the main branch
+3. Go to your repository Settings > Pages
+4. Set the source to "GitHub Actions"
+5. The workflow will automatically build and deploy your app
 
-## Development
+## Project Structure
 
-### Adding New Features
-1. Create new components in `src/components/`
-2. Update `CalendarApp.vue` to include new functionality
-3. Add any new dependencies to `package.json`
-4. Update styles in `src/style.css`
-
-### Code Style
-- Use Vue 3 Composition API
-- Follow Vue.js style guide
-- Use semantic HTML
-- Ensure accessibility compliance
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Events not saving**
-   - Check browser console for errors
-   - Verify LocalStorage is enabled
-   - Clear browser cache if needed
-
-2. **Drag & drop not working**
-   - Ensure you're using a supported browser
-   - Check that interaction plugin is loaded
-   - Verify event has proper ID
-
-3. **Modal not opening**
-   - Check Vue devtools for component state
-   - Verify event handlers are properly bound
-   - Check for JavaScript errors
-
-### Performance
-- Large numbers of events may impact performance
-- Consider implementing virtual scrolling for 1000+ events
-- Use event filtering for better UX
-
-## License
-
-This project is open source and available under the MIT License.
+```
+VueCalendar/
+├── src/
+│   ├── components/
+│   │   ├── CalendarApp.vue      # Main calendar component
+│   │   └── EventModal.vue       # Event creation/edit popover
+│   ├── assets/                  # Static assets
+│   ├── utils/                   # Utility functions
+│   ├── App.vue                  # Root component
+│   ├── main.js                  # Application entry point
+│   └── style.css                # Global styles
+├── public/                      # Public assets
+├── .github/workflows/           # GitHub Actions workflows
+├── vite.config.js              # Vite configuration
+└── package.json                # Dependencies and scripts
+```
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Support
+## License
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Review FullCalendar documentation
-3. Open an issue on GitHub
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [FullCalendar](https://fullcalendar.io/) for the excellent calendar library
+- [Vue.js](https://vuejs.org/) for the reactive framework
+- [Vite](https://vitejs.dev/) for the fast build tool
