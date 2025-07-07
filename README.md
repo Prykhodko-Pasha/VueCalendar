@@ -99,9 +99,15 @@ The project includes a GitHub Actions workflow that automatically deploys to Git
 
 1. Ensure your repository is named `VueCalendar`
 2. Push your code to the main branch
-3. Go to your repository Settings > Pages
-4. Set the source to "GitHub Actions"
+3. Go to your repository **Settings** → **Pages**
+4. Set the source to **"GitHub Actions"**
 5. The workflow will automatically build and deploy your app
+
+**Note**: If you encounter deployment issues, you can also:
+1. Go to **Settings** → **Pages**
+2. Set source to **"Deploy from a branch"**
+3. Select **"gh-pages"** branch and **"/ (root)"** folder
+4. Click **Save**
 
 ## Project Structure
 
