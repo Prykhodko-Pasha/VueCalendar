@@ -15,7 +15,7 @@ A modern, interactive calendar application built with Vue 3 and FullCalendar. Fe
 
 ## Live Demo
 
-Visit the live application: [Vue Calendar App](https://yourusername.github.io/VueCalendar/)
+Visit the live application: [Vue Calendar App](https://yourusername.github.io/vuecalendar/)
 
 ## Technologies Used
 
@@ -35,7 +35,7 @@ Visit the live application: [Vue Calendar App](https://yourusername.github.io/Vu
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/VueCalendar.git
+git clone https://github.com/yourusername/vuecalendar.git
 cd VueCalendar
 ```
 
